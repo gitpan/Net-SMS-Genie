@@ -9,17 +9,30 @@
 use strict;
 require v5.6.0;
 
+use Getopt::Long;
 use lib 'blib/lib';
 use Net::SMS::Genie;
 
-my $sms = Net::SMS::Genie->new(
-    username    => 'awrigley',
-    password    => 'warthog',
-    recipient   => '07713986247',
-    message     => 'hello world',
-    subject     => 'foobar',
-    verbose     => 1,
+my @options = qw(
+    username=s
+    password=s
+    recipient=s
+    message=s
+    subject=s
+    verbose
 );
 
-$sms->verbose( 1 );
+my %args;
+die <<USAGE unless GetOptions( \%args, @options );
+$0 
+    -username <username> 
+    -password <password>
+    -recipient <mobile no.>
+    -message <message>
+    [ -subject <subject> ]
+    [ -verbose ]
+
+USAGE
+
+my $sms = Net::SMS::Genie->new( %args );
 $sms->send_sms();

@@ -1,6 +1,6 @@
 package Net::SMS::Genie;
 
-$VERSION = '0.009';
+$VERSION = '0.010';
 use strict;
 
 #------------------------------------------------------------------------------
@@ -10,7 +10,6 @@ use strict;
 #------------------------------------------------------------------------------
 
 use Net::SMS::Web;
-use Carp;
 
 #------------------------------------------------------------------------------
 #
@@ -54,7 +53,7 @@ of subject and message lengths exceed this, the behaviour of the
 Net::SMS::Genie objects depends on the value of the 'autotruncate' argument to
 the constructor. If this is a true value, then the subject / message will be
 truncated to 123 characters. If false, the object will throw an exception
-(croak).
+(die).
 
 =cut
 
@@ -176,7 +175,7 @@ sub AUTOLOAD
     my $key = $AUTOLOAD;
     $key =~ s/.*:://;
     return if $key eq 'DESTROY';
-    confess ref($self), ": unknown method $AUTOLOAD\n" 
+    die ref($self), ": unknown method $AUTOLOAD\n" 
         unless $LEGAL_KEYS{ $key }
     ;
     if ( defined( $value ) )
@@ -266,7 +265,7 @@ sub _check_length
         ;
         if ( $self->{message_length} > $MAX_CHARS )
         {
-            confess ref($self), 
+            die ref($self), 
                 ": total message length (subject + message)  is too long ",
                 "(> $MAX_CHARS)\n"
             ;
@@ -281,7 +280,7 @@ sub _init
 
     for ( keys %REQUIRED_KEYS )
     {
-        confess ref($self), ": $_ field is required\n" unless $keys{$_};
+        die ref($self), ": $_ field is required\n" unless $keys{$_};
     }
     for ( keys %keys )
     {

@@ -2,4 +2,4 @@ Genie.pm
 MANIFEST
 Makefile.PL
 genie.pl
-test.pl
+t/use.t
