@@ -52,6 +52,12 @@ subject to change.
 
 Ave Wrigley <Ave.Wrigley@itn.co.uk>
 
+=head1 COPYRIGHT
+
+Copyright (c) 2001 Ave Wrigley. All rights reserved. This program is free
+software; you can redistribute it and/or modify it under the same terms as Perl
+itself.
+
 =cut
 
 #------------------------------------------------------------------------------
@@ -60,7 +66,7 @@ Ave Wrigley <Ave.Wrigley@itn.co.uk>
 #
 #------------------------------------------------------------------------------
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 our $BASE_URL = 'http://www.genie.co.uk';
 our $SEND_URL = "$BASE_URL/gmail/sms";
 my $LOGIN_URL = "$BASE_URL/login/doLogin";

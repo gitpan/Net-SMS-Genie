@@ -1,10 +1,12 @@
 Revision history for Perl extension Net::SMS::Genie.
 
-0.01  Mon Nov 27 15:49:33 2000
+0.001 Mon Nov 27 15:49:33 2000
 	- original version; created by h2xs 1.20 with options
 		-A -X -n Net::SMS::Genie
 
-0.02  Mon Feb 19 12:04:28 GMT 2001
-
+0.002 Mon Feb 19 12:04:28 GMT 2001
         - bug fix in HTTP request provided by Joel Hughes
           <joel.hughes@eyestorm.com>
+
+0.003 Mon Feb 19 14:36:15 GMT 2001
+        - README file added to distribution
