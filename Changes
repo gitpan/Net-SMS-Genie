@@ -24,3 +24,7 @@ Revision history for Perl extension Net::SMS::Genie.
 0.007 Thu May 17 10:51:06 BST 2001
         - added LWP::UserAgent::env_proxy call - thanks to
           Mark Bush <Mark.Bush@bushnet.demon.co.uk> for this suggestion!
+
+0.008 Thu Aug  2 11:01:26 BST 2001
+        - added 'autotruncate' argument - thanks to
+          Mark Zealey <mark@itsolve.co.uk> for this suggestion!

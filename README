@@ -18,6 +18,7 @@ Carp
 LWP::UserAgent
 CGI_Lite
 URI
+Term::Readkey
 
 See Makefile.PL for versions required. It has been tested with perl v5.6.0.
 

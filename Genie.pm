@@ -22,11 +22,12 @@ use Carp;
 =head1 NAME
 
 Net::SMS::Genie - a module to send SMS messages using the Genie web2sms
-gateway (http://www.genie.co.uk/).
+gateway (L<http://www.genie.co.uk/>).
 
 =head1 SYNOPSIS
 
     my $sms = Net::SMS->new(
+        autotruncate => 1,
         username => 'yourname',
         password => 'yourpassword',
         recipient => 07713123456,
@@ -44,25 +45,16 @@ gateway (http://www.genie.co.uk/).
 
 A perl module to send SMS messages, using the Genie web2sms gateway. This
 module will only work with mobile phone numbers that have been registered with
-Genie (http://www.genie.co.uk/) and uses form submission to a URL that may be
-subject to change.
+Genie (L<http://www.genie.co.uk/>) and uses form submission to a URL that may be
+subject to change. The Genie service is currently only available to UK mobile
+phone users.
 
-=head1 ENVIRONMENT VARIABLES
-
-Net::SMS::Genie uses LWP::UserAgent to make requests to the Genie gateway. If
-you are web browsing behind a proxy, you need to set an $http_proxy environment
-variable; see the documentation for the env_proxy method of LWP::UserAgent for
-more information.
-
-=head1 AUTHOR
-
-Ave Wrigley <Ave.Wrigley@itn.co.uk>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2001 Ave Wrigley. All rights reserved. This program is free
-software; you can redistribute it and/or modify it under the same terms as Perl
-itself.
+There is a maximum length for SMS subject + message (123 for Genie). If the sum
+of subject and message lengths exceed this, the behaviour of the
+Net::SMS::Genie objects depends on the value of the 'autotruncate' argument to
+the constructor. If this is a true value, then the subject / message will be
+truncated to 123 characters. If false, the object will throw an exception
+(croak).
 
 =cut
 
@@ -73,7 +65,7 @@ itself.
 #------------------------------------------------------------------------------
 
 use vars qw($VERSION $BASE_URL $SEND_URL %REQUIRED_KEYS %LEGAL_KEYS $MAX_CHARS);
-$VERSION = '0.007';
+$VERSION = '0.008';
 $BASE_URL = 'http://www.genie.co.uk';
 $SEND_URL = "$BASE_URL/gmail/sms";
 my $LOGIN_URL = "$BASE_URL/login/doLogin";
@@ -86,6 +78,7 @@ my $PROFILE_URL = "$BASE_URL/userprofile/userprofile.html";
     message => 1,
 );
 %LEGAL_KEYS = (
+    autotruncate => 1,
     username => 1,
     password => 1,
     recipient => 1,
@@ -100,6 +93,48 @@ $MAX_CHARS = 123;
 # Constructor
 #
 #------------------------------------------------------------------------------
+
+=head1 CONSTRUCTOR
+
+The constructor for Net::SMS::Genie takes the following arguments as hash
+values (see L<SYNOPSIS>):
+
+=head2 autotruncate (OPTIONAL)
+
+Genie as a upper limit on the length of the subject + message (123). If
+autotruncate is true, subject and message are truncated to 123 if the sum of
+their lengths exceeds 123. The heuristic for this is simply to treat subject
+and message as a string and truncate it (i.e. if length(subject) >= 123 then
+message is truncated to 0. Thanks to Mark Zealey <mark@itsolve.co.uk> for this
+suggestion. The default for this is false.
+
+=head2 username (REQUIRED)
+
+The Genie username for the user (assuming that the user is already registered
+at L<http://www.genie.co.uk/>.
+
+=head2 password (REQUIRED)
+
+The Genie password for the user (assuming that the user is already registered
+at L<http://www.genie.co.uk/>.
+
+=head2 recipient (REQUIRED)
+
+Mobile number for the intended SMS recipient.
+
+=head2 subject (REQUIRED)
+
+SMS message subject.
+
+=head2 message (REQUIRED)
+
+SMS message body.
+
+=head2 verbose (OPTIONAL)
+
+If true, various soothing messages are sent to STDERR. Defaults to false.
+
+=cut
 
 sub new
 {
@@ -206,16 +241,33 @@ sub send
     {
         confess ref($self), ": $_ field is required\n" unless $self->{$_};
     }
-    my $message_length = 
-        length( $self->{subject} ) + length( $self->{message} )
-    ;
-    if ( $message_length > $MAX_CHARS )
+    my $message_length;
+    if ( $self->{autotruncate} )
     {
-        confess ref($self), 
-            ": total message length (subject + message)  is too long ",
-            "(> $MAX_CHARS)\n"
+        $message_length = 0;
+        # Chop the message down the the correct length. Also supports subjects
+        # > $MAX_CHARS, but I think it's a bit stupid to send one, anyway ...
+        # - Mark Zealey
+        $self->{subject} = substr $self->{subject}, 0, $MAX_CHARS;
+        $self->{message} = 
+            substr $self->{message}, 0, $MAX_CHARS - length $self->{subject}
         ;
+        $message_length += length $self->{$_} for qw/subject message/;
     }
+    else
+    {
+        $message_length = 
+            length( $self->{subject} ) + length( $self->{message} )
+        ;
+        if ( $message_length > $MAX_CHARS )
+        {
+            confess ref($self), 
+                ": total message length (subject + message)  is too long ",
+                "(> $MAX_CHARS)\n"
+            ;
+        }
+    }
+ 
     my %send = (
         RECIPIENT => $self->{recipient},
         SUBJECT => $self->{subject},
@@ -234,5 +286,30 @@ sub send
     $self->get( $login_url );
     $self->get( $send_url );
 }
+
+#------------------------------------------------------------------------------
+#
+# More POD ...
+#
+#------------------------------------------------------------------------------
+
+=head1 ENVIRONMENT VARIABLES
+
+Net::SMS::Genie uses LWP::UserAgent to make requests to the Genie gateway. If
+you are web browsing behind a proxy, you need to set an $http_proxy environment
+variable; see the documentation for the env_proxy method of LWP::UserAgent for
+more information.
+
+=head1 AUTHOR
+
+Ave Wrigley <Ave.Wrigley@itn.co.uk>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2001 Ave Wrigley. All rights reserved. This program is free
+software; you can redistribute it and/or modify it under the same terms as Perl
+itself.
+
+=cut
 
 1;
