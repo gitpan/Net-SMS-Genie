@@ -17,3 +17,6 @@ Revision history for Perl extension Net::SMS::Genie.
 
 0.005 Wed Feb 21 12:58:40 GMT 2001
         - added entry to Changes file - doh!
+
+0.006 Wed Feb 21 12:58:40 GMT 2001
+        - added Term::ReadKey to Makefile.PL
