@@ -12,6 +12,7 @@ use warnings;
 require LWP::UserAgent;
 use CGI_Lite;
 use URI;
+use Carp;
 
 #------------------------------------------------------------------------------
 #
@@ -59,7 +60,7 @@ Ave Wrigley <Ave.Wrigley@itn.co.uk>
 #
 #------------------------------------------------------------------------------
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 our $BASE_URL = 'http://www.genie.co.uk';
 our $SEND_URL = "$BASE_URL/gmail/sms";
 my $LOGIN_URL = "$BASE_URL/login/doLogin";
@@ -113,7 +114,7 @@ sub AUTOLOAD
     my $key = $AUTOLOAD;
     $key =~ s/.*:://;
     return if $key eq 'DESTROY';
-    die ref($self), ": unknown method $AUTOLOAD\n" unless $LEGAL_KEYS{ $key };
+    confess ref($self), ": unknown method $AUTOLOAD\n" unless $LEGAL_KEYS{ $key };
     if ( defined( $value ) )
     {
         $self->{$key} = $value;
@@ -128,17 +129,19 @@ sub get
     my %headers = @_;
 
     my $request = HTTP::Request->new( 'GET', $url );
-    $request->header( 'Cookie' => join( ';', @{$self->{COOKIES}} ) ) 
+    # bug fix kindly provided by Joel Hughes <joel.hughes@eyestorm.com>
+    $request->header( 'Accept' => 'text/html' );
+    $request->header( 'Cookie' => join( ';', @{$self->{COOKIES}} ) )
         if @{$self->{COOKIES}}
     ;
+    print STDERR $request->as_string() if $self->verbose();
     my $ua = LWP::UserAgent->new;
     $ua->agent( "Mozilla/4.0 (compatible; MSIE 4.01; Windows NT)" );
-    print STDERR $request->as_string() if $self->verbose();
     $self->{RESPONSE} = $ua->simple_request( $request );
     print STDERR $self->{RESPONSE}->headers_as_string() if $self->verbose();
     if ( $self->{RESPONSE}->is_error )
     {
-        die 
+        confess
             ref($self), ": ", $request->uri,
             " failed:\n\t", 
             $self->{RESPONSE}->status_line, 
@@ -187,14 +190,14 @@ sub send
 
     for ( keys %REQUIRED_KEYS )
     {
-        die ref($self), ": $_ field is required\n" unless $self->{$_};
+        confess ref($self), ": $_ field is required\n" unless $self->{$_};
     }
     my $message_length = 
         length( $self->{subject} ) + length( $self->{message} )
     ;
     if ( $message_length > $MAX_CHARS )
     {
-        die ref($self), 
+        confess ref($self), 
             ": total message length (subject + message)  is too long ",
             "(> $MAX_CHARS)\n"
         ;
