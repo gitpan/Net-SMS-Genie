@@ -1,6 +1,6 @@
 package Net::SMS::Genie;
 
-$VERSION = '0.012';
+$VERSION = '0.013';
 use strict;
 
 #------------------------------------------------------------------------------
@@ -39,6 +39,7 @@ gateway (L<http://www.genie.co.uk/>).
 
     $sms->send_sms();
     my $quota = $sms->quota();
+    my $status = $sms->status();
 
 =head1 DESCRIPTION
 
@@ -76,7 +77,7 @@ use vars qw(
 @ISA = qw( Net::SMS::Web );
 
 $SEND_URL = 'http://sendtxt.genie.co.uk/cgi-bin/sms/send_sms.cgi';
-$LOGIN_URL = 'http://www.genie.co.uk/O2/login/doLogin';
+$LOGIN_URL = 'https://gordon.genie.co.uk/login/mblogin';
 
 %REQUIRED_KEYS = (
     username => 1,
@@ -225,15 +226,28 @@ sub send_sms
             action => 'Send',
         }
     ) );
-    my $status = $self->param( 'status' );
-    unless ( $status eq 'Your message has been sent successfully.' )
+    $self->{status} = $self->param( 'status' );
+    unless ( $self->{status} eq 'Your message has been sent successfully.' )
     {
-        die "Failed to send SMS message", ( $status ? ": $status" : '' ), "\n";
+        die "Failed to send SMS message", 
+            ( $self->{status} ? ": $self->{status}" : '' ), "\n";
     }
     my $quota = $self->param( 'quota' );
     ( $self->{quota} ) = 
         $quota =~ /You have (\d+) messages left to send this month./
     ;
+}
+
+=head2 status
+
+This method returns the value returned in the 'status' parameter
+
+=cut
+
+sub status
+{
+    my $self = shift;
+    return $self->{status};
 }
 
 =head2 quota
