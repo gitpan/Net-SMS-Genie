@@ -5,6 +5,6 @@ WriteMakefile(
     'NAME'		=> 'Net::SMS::Genie',
     'VERSION_FROM'	=> 'Genie.pm', # finds $VERSION
     'PREREQ_PM'		=> {
-        Net::SMS::Web   => undef,
+        Net::SMS::Web   => 0,
     }, # e.g., Module::Name => 1.1
 );
