@@ -1,7 +1,6 @@
 package Net::SMS::Genie;
 
 use strict;
-use warnings;
 
 #------------------------------------------------------------------------------
 #
@@ -66,19 +65,20 @@ itself.
 #
 #------------------------------------------------------------------------------
 
-our $VERSION = '0.003';
-our $BASE_URL = 'http://www.genie.co.uk';
-our $SEND_URL = "$BASE_URL/gmail/sms";
+use vars qw($VERSION $BASE_URL $SEND_URL %REQUIRED_KEYS %LEGAL_KEYS $MAX_CHARS);
+$VERSION = '0.004';
+$BASE_URL = 'http://www.genie.co.uk';
+$SEND_URL = "$BASE_URL/gmail/sms";
 my $LOGIN_URL = "$BASE_URL/login/doLogin";
 my $PROFILE_URL = "$BASE_URL/userprofile/userprofile.html";
-our %REQUIRED_KEYS = (
+%REQUIRED_KEYS = (
     username => 1,
     password => 1,
     recipient => 1,
     subject => 1,
     message => 1,
 );
-our %LEGAL_KEYS = (
+%LEGAL_KEYS = (
     username => 1,
     password => 1,
     recipient => 1,
@@ -86,7 +86,7 @@ our %LEGAL_KEYS = (
     message => 1,
     verbose => 1,
 );
-our $MAX_CHARS = 123;
+$MAX_CHARS = 123;
 
 #------------------------------------------------------------------------------
 #
