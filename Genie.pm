@@ -1,5 +1,6 @@
 package Net::SMS::Genie;
 
+$VERSION = '0.009';
 use strict;
 
 #------------------------------------------------------------------------------
@@ -8,9 +9,7 @@ use strict;
 #
 #------------------------------------------------------------------------------
 
-require LWP::UserAgent;
-use CGI_Lite;
-use URI;
+use Net::SMS::Web;
 use Carp;
 
 #------------------------------------------------------------------------------
@@ -26,7 +25,7 @@ gateway (L<http://www.genie.co.uk/>).
 
 =head1 SYNOPSIS
 
-    my $sms = Net::SMS->new(
+    my $sms = Net::SMS::Genie->new(
         autotruncate => 1,
         username => 'yourname',
         password => 'yourpassword',
@@ -39,7 +38,8 @@ gateway (L<http://www.genie.co.uk/>).
     $sms->message( 'a different message' );
     print "sending message to mobile number ", $sms->recipient();
 
-    $sms->send();
+    $sms->send_sms();
+    my $quota = $sms->quota();
 
 =head1 DESCRIPTION
 
@@ -64,21 +64,28 @@ truncated to 123 characters. If false, the object will throw an exception
 #
 #------------------------------------------------------------------------------
 
-use vars qw($VERSION $BASE_URL $SEND_URL %REQUIRED_KEYS %LEGAL_KEYS $MAX_CHARS);
-$VERSION = '0.008';
-$BASE_URL = 'http://www.genie.co.uk';
-$SEND_URL = "$BASE_URL/gmail/sms";
-my $LOGIN_URL = "$BASE_URL/login/doLogin";
-my $PROFILE_URL = "$BASE_URL/userprofile/userprofile.html";
+use vars qw(
+    @ISA
+    $LOGIN_URL
+    $SEND_URL 
+    %REQUIRED_KEYS 
+    %LEGAL_KEYS 
+    $MAX_CHARS
+);
+
+@ISA = qw( Net::SMS::Web );
+
+$SEND_URL = 'http://sendtxt.genie.co.uk/cgi-bin/sms/send_sms.cgi';
+$LOGIN_URL = 'http://www.genie.co.uk/O2/login/doLogin';
+
 %REQUIRED_KEYS = (
     username => 1,
     password => 1,
     recipient => 1,
-    subject => 1,
     message => 1,
 );
+
 %LEGAL_KEYS = (
-    autotruncate => 1,
     username => 1,
     password => 1,
     recipient => 1,
@@ -86,6 +93,7 @@ my $PROFILE_URL = "$BASE_URL/userprofile/userprofile.html";
     message => 1,
     verbose => 1,
 );
+
 $MAX_CHARS = 123;
 
 #------------------------------------------------------------------------------
@@ -97,11 +105,11 @@ $MAX_CHARS = 123;
 =head1 CONSTRUCTOR
 
 The constructor for Net::SMS::Genie takes the following arguments as hash
-values (see L<SYNOPSIS>):
+values (see L<SYNOPSIS|"SYNOPSIS">):
 
 =head2 autotruncate (OPTIONAL)
 
-Genie as a upper limit on the length of the subject + message (123). If
+Genie has a upper limit on the length of the subject + message (123). If
 autotruncate is true, subject and message are truncated to 123 if the sum of
 their lengths exceeds 123. The heuristic for this is simply to treat subject
 and message as a string and truncate it (i.e. if length(subject) >= 123 then
@@ -139,11 +147,8 @@ If true, various soothing messages are sent to STDERR. Defaults to false.
 sub new
 {
     my $class = shift;
-    my %params = @_;
-
-    my $self = bless \%params, $class;
-    $self->{COOKIES} = [];
-
+    my $self = $class->SUPER::new( @_ );
+    $self->_init( @_ );
     return $self;
 }
 
@@ -152,6 +157,15 @@ sub new
 # AUTOLOAD - to set / get object attributes
 #
 #------------------------------------------------------------------------------
+
+=head1 AUTOLOAD
+
+All of the constructor arguments can be got / set using accessor methods. E.g.:
+
+        $old_message = $self->message;
+        $self->message( $new_message );
+
+=cut
 
 sub AUTOLOAD
 {
@@ -162,7 +176,9 @@ sub AUTOLOAD
     my $key = $AUTOLOAD;
     $key =~ s/.*:://;
     return if $key eq 'DESTROY';
-    confess ref($self), ": unknown method $AUTOLOAD\n" unless $LEGAL_KEYS{ $key };
+    confess ref($self), ": unknown method $AUTOLOAD\n" 
+        unless $LEGAL_KEYS{ $key }
+    ;
     if ( defined( $value ) )
     {
         $self->{$key} = $value;
@@ -170,81 +186,70 @@ sub AUTOLOAD
     return $self->{$key};
 }
 
-sub get
+=head1 METHODS
+
+=head2 send_sms
+
+This method is invoked to actually send the SMS message that corresponds to the
+constructor arguments.
+
+=cut
+
+sub send_sms
 {
     my $self = shift;
-    my $url = shift;
-    my %headers = @_;
 
-    my $request = HTTP::Request->new( 'GET', $url );
-    # bug fix kindly provided by Joel Hughes <joel.hughes@eyestorm.com>
-    $request->header( 'Accept' => 'text/html' );
-    $request->header( 'Cookie' => join( ';', @{$self->{COOKIES}} ) )
-        if @{$self->{COOKIES}}
-    ;
-    print STDERR $request->as_string() if $self->verbose();
-    my $ua = LWP::UserAgent->new;
-    $ua->env_proxy();
-    $ua->agent( "Mozilla/4.0 (compatible; MSIE 4.01; Windows NT)" );
-    $self->{RESPONSE} = $ua->simple_request( $request );
-    print STDERR $self->{RESPONSE}->headers_as_string() if $self->verbose();
-    if ( $self->{RESPONSE}->is_error )
+    $self->action( Net::SMS::Web::Action->new(
+        url     => $LOGIN_URL, 
+        method  => 'GET',
+        params  => {
+            username => $self->{username},
+            password => $self->{password},
+            numTries => '',
+        }
+    ) );
+    $self->action( Net::SMS::Web::Action->new(
+        url     => $SEND_URL,
+        method  => 'POST',
+        params  => {
+            RECIPIENT => $self->{recipient},
+            SUBJECT => $self->{subject} || '',
+            MESSAGE => $self->{message},
+            check => 0,
+            left => $MAX_CHARS - $self->{message_length},
+            action => 'Send',
+        }
+    ) );
+    my $status = $self->param( 'status' );
+    unless ( $status eq 'Your message has been sent successfully.' )
     {
-        confess
-            ref($self), ": ", $request->uri,
-            " failed:\n\t", 
-            $self->{RESPONSE}->status_line, 
-            "\n"
-        ;
+        die "Failed to send SMS message: $status\n";
     }
-    $self->get_cookies();
-    my $location = $self->get_location();
-    if ( $location )
-    {
-        return $self->get( URI->new_abs( $location, $BASE_URL ) );
-    }
-}
-
-sub get_cookies
-{
-    my $self = shift;
-
-    push(
-        @{$self->{COOKIES}},
-        reverse grep s{;.*}{}, $self->{RESPONSE}->header( 'Set-Cookie' )
-    );
-}
-
-sub get_location
-{
-    my $self = shift;
-
-    return $self->{RESPONSE}->header( 'Location' );
-}
-
-sub get_url
-{
-    my $url = shift;
-    my %params = @_;
-
-    return "$url?" .
-        join '&', 
-        map { url_encode( $_ . "=$params{$_}" ) } keys %params
+    my $quota = $self->param( 'quota' );
+    ( $self->{quota} ) = 
+        $quota =~ /You have (\d+) messages left to send this month./
     ;
 }
 
-sub send
+=head2 quota
+
+This method returns the number of messages remaining in your months quota. Only
+works after send_sms has be called successfully.
+
+=cut
+
+sub quota
 {
     my $self = shift;
+    return $self->{quota};
+}
 
-    for ( keys %REQUIRED_KEYS )
-    {
-        confess ref($self), ": $_ field is required\n" unless $self->{$_};
-    }
-    my $message_length;
+sub _check_length
+{
+    my $self = shift;
+    $self->{message_length} = 0;
     if ( $self->{autotruncate} )
     {
-        $message_length = 0;
         # Chop the message down the the correct length. Also supports subjects
         # > $MAX_CHARS, but I think it's a bit stupid to send one, anyway ...
         # - Mark Zealey
@@ -252,14 +257,14 @@ sub send
         $self->{message} = 
             substr $self->{message}, 0, $MAX_CHARS - length $self->{subject}
         ;
-        $message_length += length $self->{$_} for qw/subject message/;
+        $self->{message_length} += length $self->{$_} for qw/subject message/;
     }
     else
     {
-        $message_length = 
+        $self->{message_length} = 
             length( $self->{subject} ) + length( $self->{message} )
         ;
-        if ( $message_length > $MAX_CHARS )
+        if ( $self->{message_length} > $MAX_CHARS )
         {
             confess ref($self), 
                 ": total message length (subject + message)  is too long ",
@@ -267,24 +272,22 @@ sub send
             ;
         }
     }
- 
-    my %send = (
-        RECIPIENT => $self->{recipient},
-        SUBJECT => $self->{subject},
-        MESSAGE => $self->{message},
-        check => 0,
-        left => $MAX_CHARS - $message_length,
-        action => 'Send',
-    );
-    my %login = (
-        username => $self->{username},
-        password => $self->{password},
-        numTries => '',
-    );
-    my $send_url = get_url( $SEND_URL, %send );
-    my $login_url = get_url( $LOGIN_URL, %login );
-    $self->get( $login_url );
-    $self->get( $send_url );
+}
+
+sub _init
+{
+    my $self = shift;
+    my %keys = @_;
+
+    for ( keys %REQUIRED_KEYS )
+    {
+        confess ref($self), ": $_ field is required\n" unless $keys{$_};
+    }
+    for ( keys %keys )
+    {
+        $self->{$_} = $keys{$_};
+    }
+    $self->_check_length();
 }
 
 #------------------------------------------------------------------------------
@@ -292,13 +295,6 @@ sub send
 # More POD ...
 #
 #------------------------------------------------------------------------------
-
-=head1 ENVIRONMENT VARIABLES
-
-Net::SMS::Genie uses LWP::UserAgent to make requests to the Genie gateway. If
-you are web browsing behind a proxy, you need to set an $http_proxy environment
-variable; see the documentation for the env_proxy method of LWP::UserAgent for
-more information.
 
 =head1 AUTHOR
 

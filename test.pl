@@ -7,7 +7,6 @@
 #------------------------------------------------------------------------------
 
 use strict;
-require v5.6.0;
 
 use Term::ReadKey;
 use Net::SMS::Genie;
@@ -17,16 +16,15 @@ print "1..1\n";
 $|++;
 
 my %prompt = (
-    username => "Enter Genie username: ",
-    password => "Enter Genie password: ",
+    username => "Enter username: ",
+    password => "Enter password: ",
     recipient => "Enter recipient mobile number: ",
-    subject => "Enter an SMS subject: ",
     message => "Enter an SMS message: ",
 );
 
 my %args;
 
-for ( qw( username password recipient subject message ) )
+for ( qw( username password recipient message ) )
 {
     ReadMode 'noecho' if $_ eq 'password';
     print $prompt{$_}; 
@@ -39,10 +37,17 @@ for ( qw( username password recipient subject message ) )
     }
 }
 
+$args{recipient} =~ s/\D//g;
+
 eval {
     my $sms = Net::SMS::Genie->new( %args );
     $sms->verbose( 1 );
-    $sms->send();
+    $sms->send_sms();
+    print STDERR 
+        "You have ", 
+        $sms->quota(), 
+        " messages left in your monthly quota\n"
+    ;
 };
 
 if ( $@ )
