@@ -20,3 +20,7 @@ Revision history for Perl extension Net::SMS::Genie.
 
 0.006 Wed Feb 21 12:58:40 GMT 2001
         - added Term::ReadKey to Makefile.PL
+
+0.007 Thu May 17 10:51:06 BST 2001
+        - added LWP::UserAgent::env_proxy call - thanks to
+          Mark Bush <Mark.Bush@bushnet.demon.co.uk> for this suggestion!

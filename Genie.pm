@@ -22,7 +22,7 @@ use Carp;
 =head1 NAME
 
 Net::SMS::Genie - a module to send SMS messages using the Genie web2sms
-gateway (htto://www.genie.co.uk/).
+gateway (http://www.genie.co.uk/).
 
 =head1 SYNOPSIS
 
@@ -47,6 +47,13 @@ module will only work with mobile phone numbers that have been registered with
 Genie (http://www.genie.co.uk/) and uses form submission to a URL that may be
 subject to change.
 
+=head1 ENVIRONMENT VARIABLES
+
+Net::SMS::Genie uses LWP::UserAgent to make requests to the Genie gateway. If
+you are web browsing behind a proxy, you need to set an $http_proxy environment
+variable; see the documentation for the env_proxy method of LWP::UserAgent for
+more information.
+
 =head1 AUTHOR
 
 Ave Wrigley <Ave.Wrigley@itn.co.uk>
@@ -66,7 +73,7 @@ itself.
 #------------------------------------------------------------------------------
 
 use vars qw($VERSION $BASE_URL $SEND_URL %REQUIRED_KEYS %LEGAL_KEYS $MAX_CHARS);
-$VERSION = '0.006';
+$VERSION = '0.007';
 $BASE_URL = 'http://www.genie.co.uk';
 $SEND_URL = "$BASE_URL/gmail/sms";
 my $LOGIN_URL = "$BASE_URL/login/doLogin";
@@ -142,6 +149,7 @@ sub get
     ;
     print STDERR $request->as_string() if $self->verbose();
     my $ua = LWP::UserAgent->new;
+    $ua->env_proxy();
     $ua->agent( "Mozilla/4.0 (compatible; MSIE 4.01; Windows NT)" );
     $self->{RESPONSE} = $ua->simple_request( $request );
     print STDERR $self->{RESPONSE}->headers_as_string() if $self->verbose();
