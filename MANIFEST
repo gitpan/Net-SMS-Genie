@@ -1,5 +1,6 @@
 Genie.pm
+genie.pl
 MANIFEST
 Makefile.PL
-genie.pl
+README
 t/use.t

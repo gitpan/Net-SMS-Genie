@@ -1,6 +1,6 @@
 package Net::SMS::Genie;
 
-$VERSION = '0.010';
+$VERSION = '0.011';
 use strict;
 
 #------------------------------------------------------------------------------
@@ -48,12 +48,13 @@ Genie (L<http://www.genie.co.uk/>) and uses form submission to a URL that may be
 subject to change. The Genie service is currently only available to UK mobile
 phone users.
 
-There is a maximum length for SMS subject + message (123 for Genie). If the sum
+There is a maximum length for SMS subject + message (115 for Genie). If the sum
 of subject and message lengths exceed this, the behaviour of the
 Net::SMS::Genie objects depends on the value of the 'autotruncate' argument to
 the constructor. If this is a true value, then the subject / message will be
-truncated to 123 characters. If false, the object will throw an exception
-(die).
+truncated to 115 characters. If false, the object will throw an exception
+(die). If you set notruncate to 1, then the module won't check the message
+length, and you are on your own!
 
 =cut
 
@@ -93,7 +94,7 @@ $LOGIN_URL = 'http://www.genie.co.uk/O2/login/doLogin';
     verbose => 1,
 );
 
-$MAX_CHARS = 123;
+$MAX_CHARS = 115;
 
 #------------------------------------------------------------------------------
 #
@@ -108,12 +109,17 @@ values (see L<SYNOPSIS|"SYNOPSIS">):
 
 =head2 autotruncate (OPTIONAL)
 
-Genie has a upper limit on the length of the subject + message (123). If
-autotruncate is true, subject and message are truncated to 123 if the sum of
-their lengths exceeds 123. The heuristic for this is simply to treat subject
-and message as a string and truncate it (i.e. if length(subject) >= 123 then
+Genie has a upper limit on the length of the subject + message (115). If
+autotruncate is true, subject and message are truncated to 115 if the sum of
+their lengths exceeds 115. The heuristic for this is simply to treat subject
+and message as a string and truncate it (i.e. if length(subject) >= 115 then
 message is truncated to 0. Thanks to Mark Zealey <mark@itsolve.co.uk> for this
 suggestion. The default for this is false.
+
+=head2 notruncate (OPTIONAL)
+
+Of course, if you don't believe the Genie web interface about maximum character
+length, then you can set this option.
 
 =head2 username (REQUIRED)
 
@@ -222,7 +228,7 @@ sub send_sms
     my $status = $self->param( 'status' );
     unless ( $status eq 'Your message has been sent successfully.' )
     {
-        die "Failed to send SMS message: $status\n";
+        die "Failed to send SMS message", ( $status ? ": $status" : '' ), "\n";
     }
     my $quota = $self->param( 'quota' );
     ( $self->{quota} ) = 
@@ -258,7 +264,7 @@ sub _check_length
         ;
         $self->{message_length} += length $self->{$_} for qw/subject message/;
     }
-    else
+    elsif ( ! $self->{notruncate} )
     {
         $self->{message_length} = 
             length( $self->{subject} ) + length( $self->{message} )
