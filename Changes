@@ -10,3 +10,10 @@ Revision history for Perl extension Net::SMS::Genie.
 
 0.003 Mon Feb 19 14:36:15 GMT 2001
         - README file added to distribution
+
+0.004 Wed Feb 21 12:58:40 GMT 2001
+        - module made pre-5.6 compliant (thanks to Tom Hukins <tom@eborcom.com>
+          for the patch
+
+0.005 Wed Feb 21 12:58:40 GMT 2001
+        - added entry to Changes file - doh!

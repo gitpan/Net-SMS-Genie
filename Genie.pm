@@ -66,7 +66,7 @@ itself.
 #------------------------------------------------------------------------------
 
 use vars qw($VERSION $BASE_URL $SEND_URL %REQUIRED_KEYS %LEGAL_KEYS $MAX_CHARS);
-$VERSION = '0.004';
+$VERSION = '0.005';
 $BASE_URL = 'http://www.genie.co.uk';
 $SEND_URL = "$BASE_URL/gmail/sms";
 my $LOGIN_URL = "$BASE_URL/login/doLogin";
